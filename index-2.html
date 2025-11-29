@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IXECA - ΔFIELD.CODEX</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --text-primary: #e0e0f0;
+            --text-secondary: #a0a0c0;
+            --accent-primary: #6060ff;
+            --accent-glow: #8080ff;
+            --border-color: #2a2a40;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', 'Consolas', monospace;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.8;
+            overflow-x: hidden;
+        }
+
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(10, 10, 15, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            color: var(--accent-glow);
+            text-shadow: 0 0 20px var(--accent-primary);
+            letter-spacing: 0.3em;
+        }
+
+        .nav-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .nav-controls button {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+
+        .nav-controls button:hover {
+            background: var(--accent-primary);
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        #searchBox {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            font-family: inherit;
+            min-width: 250px;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 60px;
+            left: 0;
+            width: 300px;
+            height: calc(100vh - 60px);
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            padding: 2rem 1rem;
+            transform: translateX(-100%);
+            transition: transform 0.3s;
+        }
+
+        .sidebar.open {
+            transform: translateX(0);
+        }
+
+        .sidebar h3 {
+            color: var(--accent-glow);
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            letter-spacing: 0.2em;
+        }
+
+        .toc-item {
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            cursor: pointer;
+            border-left: 2px solid transparent;
+            transition: all 0.3s;
+            font-size: 0.85rem;
+        }
+
+        .toc-item:hover {
+            border-left-color: var(--accent-primary);
+            background: rgba(96, 96, 255, 0.1);
+        }
+
+        .toc-item.level-1 { padding-left: 0.5rem; }
+        .toc-item.level-2 { padding-left: 1.5rem; font-size: 0.8rem; }
+        .toc-item.level-3 { padding-left: 2.5rem; font-size: 0.75rem; }
+
+        .container {
+            margin-left: 0;
+            margin-top: 60px;
+            padding: 3rem;
+            max-width: 900px;
+            transition: margin-left 0.3s;
+        }
+
+        .container.with-sidebar {
+            margin-left: 300px;
+        }
+
+        pre {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            padding: 1.5rem;
+            overflow-x: auto;
+            border-radius: 4px;
+            margin: 1rem 0;
+        }
+
+        code {
+            font-family: 'Courier New', monospace;
+            color: var(--accent-glow);
+        }
+
+        h1, h2, h3, h4 {
+            color: var(--accent-glow);
+            margin: 2rem 0 1rem 0;
+            text-shadow: 0 0 10px rgba(96, 96, 255, 0.3);
+        }
+
+        h1 { font-size: 2rem; letter-spacing: 0.1em; }
+        h2 { font-size: 1.5rem; letter-spacing: 0.08em; }
+        h3 { font-size: 1.2rem; }
+
+        blockquote {
+            border-left: 3px solid var(--accent-primary);
+            padding-left: 1.5rem;
+            margin: 1.5rem 0;
+            font-style: italic;
+            color: var(--text-secondary);
+        }
+
+        a {
+            color: var(--accent-primary);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        a:hover {
+            color: var(--accent-glow);
+            text-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid var(--border-color);
+            margin: 2rem 0;
+        }
+
+        .search-highlight {
+            background: rgba(96, 96, 255, 0.3);
+            padding: 0 0.2rem;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-primary);
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-size: 1.5rem;
+            color: var(--accent-glow);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+            }
+            .container.with-sidebar {
+                margin-left: 0;
+            }
+            .header h1 {
+                font-size: 1rem;
+            }
+            .container {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>╔═══════╗ IXECA ╚═══════╝</h1>
+        <div class="nav-controls">
+            <input type="text" id="searchBox" placeholder="Search IXECA...">
+            <button id="tocToggle">Contents</button>
+            <button id="downloadBtn">Download MD</button>
+        </div>
+    </div>
+
+    <div class="sidebar" id="sidebar">
+        <h3>TABLE OF CONTENTS</h3>
+        <div id="tocContent"></div>
+    </div>
+
+    <div class="container" id="container">
+        <div class="loading" id="loading">Loading IXECA...</div>
+        <div id="content"></div>
+    </div>
+
+    <script>
+        let markdownContent = '';
+        let sidebarOpen = false;
+
+        // Load markdown file
+        fetch('IXECA.md')
+            .then(response => response.text())
+            .then(markdown => {
+                markdownContent = markdown;
+                renderContent(markdown);
+                generateTOC(markdown);
+                document.getElementById('loading').style.display = 'none';
+            })
+            .catch(error => {
+                document.getElementById('loading').textContent = 'Error loading IXECA';
+                console.error('Error:', error);
+            });
+
+        function renderContent(markdown) {
+            const contentDiv = document.getElementById('content');
+            contentDiv.innerHTML = marked.parse(markdown);
+            
+            // Add IDs to headers for navigation
+            const headers = contentDiv.querySelectorAll('h1, h2, h3, h4');
+            headers.forEach((header, index) => {
+                header.id = `section-${index}`;
+            });
+        }
+
+        function generateTOC(markdown) {
+            const tocDiv = document.getElementById('tocContent');
+            const lines = markdown.split('\n');
+            let tocHTML = '';
+            
+            lines.forEach((line, index) => {
+                const h1Match = line.match(/^# (.+)/);
+                const h2Match = line.match(/^## (.+)/);
+                const h3Match = line.match(/^### (.+)/);
+                
+                if (h1Match) {
+                    tocHTML += `<div class="toc-item level-1" onclick="scrollToHeader(${index})">${h1Match[1]}</div>`;
+                } else if (h2Match) {
+                    tocHTML += `<div class="toc-item level-2" onclick="scrollToHeader(${index})">${h2Match[1]}</div>`;
+                } else if (h3Match) {
+                    tocHTML += `<div class="toc-item level-3" onclick="scrollToHeader(${index})">${h3Match[1]}</div>`;
+                }
+            });
+            
+            tocDiv.innerHTML = tocHTML;
+        }
+
+        function scrollToHeader(lineIndex) {
+            const headers = document.querySelectorAll('#content h1, #content h2, #content h3, #content h4');
+            let headerCount = 0;
+            const lines = markdownContent.split('\n');
+            
+            for (let i = 0; i <= lineIndex; i++) {
+                if (lines[i].match(/^#{1,4} /)) {
+                    if (i === lineIndex && headers[headerCount]) {
+                        headers[headerCount].scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        return;
+                    }
+                    headerCount++;
+                }
+            }
+        }
+
+        // Toggle sidebar
+        document.getElementById('tocToggle').addEventListener('click', () => {
+            sidebarOpen = !sidebarOpen;
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('container').classList.toggle('with-sidebar');
+        });
+
+        // Search functionality
+        document.getElementById('searchBox').addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            if (searchTerm.length < 2) {
+                renderContent(markdownContent);
+                return;
+            }
+            
+            const highlighted = markdownContent.replace(
+                new RegExp(searchTerm, 'gi'),
+                match => `<mark class="search-highlight">${match}</mark>`
+            );
+            renderContent(highlighted);
+        });
+
+        // Download button
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const blob = new Blob([markdownContent], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'IXECA.md';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+    </script>
+</body>
+</html>
